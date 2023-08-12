@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Almira Teacher's Dictionary</title>
+</head>
+<body>
+    <h1>Almira Teacher's Dictionary</h1>
+    <div id="questionContainer">
+        <img id="questionImage" src="" alt="Soru Fotoğrafı">
+        <p id="questionText"></p>
+        <input type="text" id="answerInput" placeholder="Cevabınızı girin">
+        <button id="checkButton">Check</button>
+        <button id="hintButton">hint</button>
+        <p id="resultText"></p>
+    </div>
+
+    <p>Doğru Cevap Sayısı: <span id="correctCount">0</span></p>
+    <p>Yanlış Cevap Sayısı: <span id="wrongCount">0</span></p>
+
+    <script>
+        const questionImage = document.getElementById('questionImage');
+        const questionText = document.getElementById('questionText');
+        const answerInput = document.getElementById('answerInput');
+        const checkButton = document.getElementById('checkButton');
+        const hintButton = document.getElementById('hintButton');
+        const resultText = document.getElementById('resultText');
+        const correctCountSpan = document.getElementById('correctCount');
+        const wrongCountSpan = document.getElementById('wrongCount');
+
+        let correctCount = 0; // Doğru cevap sayısı, başlangıçta sıfıra ayarlandı
+        let wrongCount = 0;   // Yanlış cevap sayısı, başlangıçta sıfıra ayarlandı
+
+        const questions = []; // Soruları tutmak için dizi
+        let shuffledQuestionIndexes = [];
+        let currentQuestionIndex = 0;
+
+        // Fisher-Yates algoritması ile dizi karıştırma
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Soruları yükle ve rastgele sırala
+        fetch('sorular.txt')
+            .then(response => response.text())
+            .then(data => {
+                questions.push(...data.split('\n'));
+                shuffledQuestionIndexes = shuffleArray(Array.from({ length: questions.length }, (_, i) => i));
+                showQuestion(currentQuestionIndex);
+            })
+            .catch(error => {
+                console.error('Veri yükleme hatası:', error);
+            });
+
+        // Bir sonraki soruyu göster
+        function showQuestion(index) {
+            if (index < questions.length) {
+                const questionIndex = shuffledQuestionIndexes[index];
+                questionImage.src = `photo/${questionIndex + 1}.jpg`;
+                questionText.textContent = questions[questionIndex];
+                answerInput.value = '';
+                resultText.textContent = '';
+            }
+        }
+
+        // Cevabı kontrol et
+        checkButton.addEventListener('click', () => {
+            fetch(`cevaplar.txt`)
+                .then(response => response.text())
+                .then(data => {
+                    const answers = data.split('\n');
+                    const questionIndex = shuffledQuestionIndexes[currentQuestionIndex];
+                    if (answerInput.value.trim().toLowerCase() === answers[questionIndex].trim().toLowerCase()) {
+                        resultText.textContent = 'Doğru! Bir sonraki soruya geçin.';
+                        currentQuestionIndex++;
+                        showQuestion(currentQuestionIndex);
+                        correctCount++;
+                        correctCountSpan.textContent = correctCount;
+                    } else {
+                        resultText.textContent = 'Yanlış cevap, tekrar deneyin.';
+                        wrongCount--;
+                        wrongCountSpan.textContent = wrongCount;
+                    }
+                })
+                .catch(error => {
+                    console.error('Cevap yükleme hatası:', error);
+                });
+        });
+
+        // İpucu butonu
+        hintButton.addEventListener('click', () => {
+            fetch(`cevaplar.txt`)
+                .then(response => response.text())
+                .then(data => {
+                    const answers = data.split('\n');
+                    const questionIndex = shuffledQuestionIndexes[currentQuestionIndex];
+                    answerInput.value = answers[questionIndex];
+                })
+                .catch(error => {
+                    console.error('Cevap yükleme hatası:', error);
+                });
+        });
+    </script>
+</body>
+</html>
